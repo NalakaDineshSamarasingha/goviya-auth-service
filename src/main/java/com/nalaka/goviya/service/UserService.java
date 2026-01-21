@@ -14,6 +14,7 @@ import com.nalaka.goviya.model.dto.EmailSignupRequest;
 import com.nalaka.goviya.model.dto.LoginResponse;
 import com.nalaka.goviya.model.dto.RegisterUserRequest;
 import com.nalaka.goviya.repository.UserRepository;
+import com.nalaka.goviya.util.JwtUtil;
 
 import lombok.extern.slf4j.Slf4j;
 
@@ -30,6 +31,9 @@ public class UserService {
 
     @Autowired
     private PasswordEncoder passwordEncoder;
+    
+    @Autowired
+    private JwtUtil jwtUtil;
 
     public User register(User user) {
         if(repo.existsByEmail(user.getEmail())){
@@ -116,12 +120,17 @@ public class UserService {
 
         log.info("User logged in successfully: {}", user.getEmail());
 
+        // Generate JWT token
+        String token = jwtUtil.generateToken(user.getId(), user.getEmail(), user.getRole());
+
         // Create response (without password)
         LoginResponse response = new LoginResponse();
+        response.setToken(token);
         response.setId(user.getId());
         response.setFirstName(user.getFirstName());
         response.setLastName(user.getLastName());
         response.setEmail(user.getEmail());
+        response.setRole(user.getRole());
         response.setPhone(user.getPhone());
         response.setProvince(user.getProvice());
         response.setDistrict(user.getDistrict());
