@@ -8,10 +8,12 @@ import lombok.NoArgsConstructor;
 @NoArgsConstructor
 @AllArgsConstructor
 public class LoginResponse {
+    private String token;
     private String id;
     private String firstName;
     private String lastName;
     private String email;
+    private String role;
     private String phone;
     private String province;
     private String district;

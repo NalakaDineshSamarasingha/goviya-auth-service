@@ -9,13 +9,14 @@
 1. [Database Testing](#1-test-database-connection)
 2. [User Authentication](#user-authentication)
    - [Signup](#2-user-signup)
-   - [Login](#3-user-login)
+   - [Login (Returns JWT)](#3-user-login-returns-jwt-token)
    - [Forgot Password](#4-forgot-password)
    - [Reset Password](#5-reset-password)
 3. [OTP Services](#otp-services)
    - [Send Phone OTP](#6-send-phone-otp)
    - [Verify Phone OTP](#7-verify-phone-otp)
-4. [Complete Workflows](#complete-workflows)
+4. [JWT Authentication](#jwt-authentication)
+5. [Complete Workflows](#complete-workflows)
 
 ---
 
@@ -91,7 +92,7 @@ MongoDB connection SUCCESS. User count = 0
 
 ---
 
-### 3. User Login
+### 3. User Login (Returns JWT Token)
 **Method:** `POST`  
 **URL:** `http://localhost:8080/api/auth/login`  
 **Headers:** `Content-Type: application/json`
@@ -104,16 +105,18 @@ MongoDB connection SUCCESS. User count = 0
 }
 ```
 
-**Success Response:**
+**Success Response (with JWT token - 30 days expiration):**
 ```json
 {
   "success": true,
   "message": "Login successful",
   "data": {
+    "token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySWQiOiI2NTdhOGYzZjJkNGU1YjAwMTJhYzk4NzYiLCJlbWFpbCI6ImpvaG4uZG9lQGV4YW1wbGUuY29tIiwicm9sZSI6ImZhcm1lciIsInN1YiI6ImpvaG4uZG9lQGV4YW1wbGUuY29tIiwiaWF0IjoxNzA2MDYxNjAwLCJleHAiOjE3MDg2NTM2MDB9.xyz...",
     "id": "507f1f77bcf86cd799439011",
     "firstName": "John",
     "lastName": "Doe",
     "email": "john.doe@example.com",
+    "role": "farmer",
     "phone": "0771234567",
     "province": "Western",
     "district": "Colombo",
@@ -123,6 +126,8 @@ MongoDB connection SUCCESS. User count = 0
   }
 }
 ```
+
+**Important:** Save the `token` value to use in protected endpoints.
 
 ---
 
@@ -248,6 +253,58 @@ MongoDB connection SUCCESS. User count = 0
 
 ---
 
+## JWT Authentication
+
+### Using JWT Token in Requests
+
+After logging in, you'll receive a JWT token that's valid for **30 days**. Use this token to authenticate protected API requests.
+
+#### How to Add JWT Token in Postman:
+
+**Method 1: Authorization Tab**
+1. In Postman, select the **Authorization** tab
+2. Choose **Type:** `Bearer Token`
+3. Paste your token in the **Token** field
+
+**Method 2: Headers Tab**
+1. In Postman, select the **Headers** tab
+2. Add a new header:
+   - **Key:** `Authorization`
+   - **Value:** `Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...`
+
+#### JWT Token Details:
+
+**Token Contains:**
+- User ID
+- Email
+- Role (farmer, buyer, admin)
+- Issue date
+- Expiration date (30 days from login)
+
+**Token Example:**
+```
+eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySWQiOiI2NTdhOGYzZjJkNGU1YjAwMTJhYzk4NzYiLCJlbWFpbCI6ImpvaG4uZG9lQGV4YW1wbGUuY29tIiwicm9sZSI6ImZhcm1lciIsInN1YiI6ImpvaG4uZG9lQGV4YW1wbGUuY29tIiwiaWF0IjoxNzA2MDYxNjAwLCJleHAiOjE3MDg2NTM2MDB9.xyz...
+```
+
+**Decoded Payload:**
+```json
+{
+  "userId": "657a8f3f2d4e5b0012ac9876",
+  "email": "john.doe@example.com",
+  "role": "farmer",
+  "sub": "john.doe@example.com",
+  "iat": 1706061600,
+  "exp": 1708653600
+}
+```
+
+**Note:** 
+- Tokens expire after 30 days
+- After expiration, user must login again to get a new token
+- Store the token securely on the client side
+
+---
+
 ## Complete Workflows
 
 ### Workflow 1: New User Signup → Login
@@ -268,6 +325,7 @@ MongoDB connection SUCCESS. User count = 0
      "password": "Jane@123"
    }
    ```
+   **Response includes JWT token - save it for authenticated requests**
 
 ---
 
@@ -388,16 +446,26 @@ MongoDB connection SUCCESS. User count = 0
 ## Tips for Testing
 
 1. **Test DB Connection first** to ensure MongoDB is running
-2. **Use valid email addresses** for forgot password feature to receive OTP
-3. **Check server logs** to see OTP codes during development (logged for testing)
-4. **OTPs expire in 5 minutes** - request new one if expired
-5. **Each OTP is single-use** - cannot reuse the same OTP
-6. **Passwords are case-sensitive**
-7. **Email must be unique** - cannot create multiple accounts with same email
+2. **Login returns JWT token** - save it for future authenticated requests
+3. **JWT token is valid for 30 days** - store it securely
+4. **Use valid email addresses** for forgot password feature to receive OTP
+5. **Check server logs** to see OTP codes during development (logged for testing)
+6. **OTPs expire in 5 minutes** - request new one if expired
+7. **Each OTP is single-use** - cannot reuse the same OTP
+8. **Passwords are case-sensitive**
+9. **Email must be unique** - cannot create multiple accounts with same email
+10. **Use Bearer token authentication** for protected endpoints
 
 ---
 
 ## Environment Setup Required
+
+### For JWT Authentication:
+- JWT secret key (auto-configured with default)
+- For production, set environment variable:
+  ```
+  JWT_SECRET=your-very-long-and-secure-secret-key-min-64-characters
+  ```
 
 ### For Email (Forgot Password):
 - Gmail account with 2FA enabled
@@ -416,5 +484,17 @@ MongoDB connection SUCCESS. User count = 0
   TWILIO_AUTH_TOKEN=your-auth-token
   TWILIO_PHONE_NUMBER=+1234567890
   ```
+
+### All Environment Variables for Render:
+```
+PORT=8080
+MONGODB_URI=your-mongodb-connection-string
+JWT_SECRET=your-jwt-secret-key
+EMAIL_USERNAME=your-email@gmail.com
+EMAIL_PASSWORD=your-app-password
+TWILIO_ACCOUNT_SID=your-twilio-sid
+TWILIO_AUTH_TOKEN=your-twilio-token
+TWILIO_PHONE_NUMBER=your-twilio-number
+```
 
 See [EMAIL_SETUP.md](EMAIL_SETUP.md) for detailed email configuration.
