@@ -97,13 +97,27 @@ MongoDB connection SUCCESS. User count = 0
 **URL:** `http://localhost:8080/api/auth/login`  
 **Headers:** `Content-Type: application/json`
 
-**Request Body:**
+**Email Login Request Body:**
 ```json
 {
   "email": "john.doe@example.com",
   "password": "Test@123"
 }
 ```
+
+**Phone OTP Login Flow:**
+1. Request an OTP with purpose `login` using `POST /api/otp/send`
+2. Log in with `POST /api/auth/login`
+
+**Phone OTP Request Body:**
+```json
+{
+  "phoneNumber": "0771234567",
+  "otp": "123456"
+}
+```
+
+**Purpose for OTP send:** `login`
 
 **Success Response (with JWT token - 30 days expiration):**
 ```json
@@ -326,6 +340,14 @@ eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySWQiOiI2NTdhOGYzZjJkNGU1YjAwMTJhYzk
    }
    ```
    **Response includes JWT token - save it for authenticated requests**
+
+   Or, if the user logs in with a mobile number:
+   ```json
+   {
+     "phoneNumber": "0771234567",
+     "otp": "123456"
+   }
+   ```
 
 ---
 

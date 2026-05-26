@@ -97,17 +97,15 @@ public class UserController {
     }
 
     /**
-     * Login with email and password
+     * Login with email/password or phone/OTP
      * POST /api/auth/login
-     * Body: {
-     *   "email": "john@example.com",
-     *   "password": "password123"
-     * }
+     * Body: { "email": "john@example.com", "password": "password123" }
+     * or:   { "phoneNumber": "0771234567", "otp": "123456" }
      */
     @PostMapping("/login")
     public ResponseEntity<ApiResponse<LoginResponse>> login(@Valid @RequestBody LoginRequest request) {
         try {
-            LoginResponse loginResponse = userService.login(request.getEmail(), request.getPassword());
+            LoginResponse loginResponse = userService.login(request);
             
             ApiResponse<LoginResponse> response = new ApiResponse<>(
                     true,

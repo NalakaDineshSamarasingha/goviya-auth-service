@@ -2,15 +2,19 @@ package com.nalaka.goviya.service;
 
 
 import java.util.HashMap;
+import java.util.LinkedHashSet;
 import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
+import org.springframework.util.StringUtils;
 
 import com.nalaka.goviya.model.User;
 import com.nalaka.goviya.model.dto.EmailSignupRequest;
+import com.nalaka.goviya.model.dto.LoginRequest;
 import com.nalaka.goviya.model.dto.LoginResponse;
 import com.nalaka.goviya.model.dto.RegisterUserRequest;
 import com.nalaka.goviya.repository.UserRepository;
@@ -101,29 +105,64 @@ public class UserService {
     }
 
     /**
-     * Login with email and password
+     * Login with email/password or phone/OTP
      */
-    public LoginResponse login(String email, String password) {
-        // Find user by email
+    public LoginResponse login(LoginRequest request) {
+        if (hasText(request.getPhoneNumber()) || hasText(request.getOtp())) {
+            if (!hasText(request.getPhoneNumber()) || !hasText(request.getOtp())) {
+                throw new RuntimeException("Phone number and OTP are required for mobile login");
+            }
+
+            return loginWithPhoneOtp(request.getPhoneNumber(), request.getOtp());
+        }
+
+        if (hasText(request.getEmail()) || hasText(request.getPassword())) {
+            if (!hasText(request.getEmail()) || !hasText(request.getPassword())) {
+                throw new RuntimeException("Email and password are required for email login");
+            }
+
+            return loginWithEmailPassword(request.getEmail(), request.getPassword());
+        }
+
+        throw new RuntimeException("Email/password or phone/OTP is required for login");
+    }
+
+    private LoginResponse loginWithEmailPassword(String email, String password) {
         Optional<User> userOpt = repo.findByEmail(email);
-        
+
         if (userOpt.isEmpty()) {
             throw new RuntimeException("Invalid email or password");
         }
 
         User user = userOpt.get();
 
-        // Verify password
         if (!passwordEncoder.matches(password, user.getPassword())) {
             throw new RuntimeException("Invalid email or password");
         }
 
-        log.info("User logged in successfully: {}", user.getEmail());
+        return buildLoginResponse(user, user.getEmail());
+    }
 
-        // Generate JWT token
-        String token = jwtUtil.generateToken(user.getId(), user.getEmail(), user.getRole());
+    private LoginResponse loginWithPhoneOtp(String phoneNumber, String otp) {
+        Map<String, Object> otpResult = otpService.verifyOtp(phoneNumber, otp, "login");
 
-        // Create response (without password)
+        boolean otpVerified = (boolean) otpResult.get("success");
+        if (!otpVerified) {
+            throw new RuntimeException((String) otpResult.get("message"));
+        }
+
+        User user = findUserByPhoneNumber(phoneNumber)
+                .orElseThrow(() -> new RuntimeException("No account found with this mobile number"));
+
+        String tokenSubject = StringUtils.hasText(user.getEmail()) ? user.getEmail() : normalizePhoneNumber(phoneNumber);
+        return buildLoginResponse(user, tokenSubject);
+    }
+
+    private LoginResponse buildLoginResponse(User user, String tokenSubject) {
+        log.info("User logged in successfully: {}", StringUtils.hasText(user.getEmail()) ? user.getEmail() : user.getPhone());
+
+        String token = jwtUtil.generateToken(user.getId(), tokenSubject, user.getRole());
+
         LoginResponse response = new LoginResponse();
         response.setToken(token);
         response.setId(user.getId());
@@ -139,6 +178,51 @@ public class UserService {
         response.setHarvestArea(user.getHarvestArea());
 
         return response;
+    }
+
+    private Optional<User> findUserByPhoneNumber(String phoneNumber) {
+        Set<String> candidates = new LinkedHashSet<>();
+        candidates.add(phoneNumber);
+        candidates.add(normalizePhoneNumber(phoneNumber));
+
+        for (String candidate : candidates) {
+            if (!StringUtils.hasText(candidate)) {
+                continue;
+            }
+
+            Optional<User> userByPhone = repo.findByPhone(candidate);
+            if (userByPhone.isPresent()) {
+                return userByPhone;
+            }
+
+            Optional<User> userByOptionalPhone = repo.findByOptionalPhone(candidate);
+            if (userByOptionalPhone.isPresent()) {
+                return userByOptionalPhone;
+            }
+        }
+
+        return Optional.empty();
+    }
+
+    private String normalizePhoneNumber(String phoneNumber) {
+        if (!StringUtils.hasText(phoneNumber)) {
+            return phoneNumber;
+        }
+
+        String trimmedPhone = phoneNumber.trim();
+        if (trimmedPhone.startsWith("+94")) {
+            return trimmedPhone;
+        }
+
+        if (trimmedPhone.startsWith("0")) {
+            return "+94" + trimmedPhone.substring(1);
+        }
+
+        return "+94" + trimmedPhone;
+    }
+
+    private boolean hasText(String value) {
+        return StringUtils.hasText(value);
     }
 
     /**
