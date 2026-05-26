@@ -289,7 +289,11 @@ public class UserService {
         user.setPhone(request.getPhone());
         user.setOptionalPhone(request.getOptionalPhone());
         user.setHarvestTypes(request.getHarvestTypes());
-        user.setHarvestArea(request.getHarvestArea());
+        
+        if (request.getHarvestArea() != null && request.getHarvestArea() > 0) {
+            user.setHarvestArea(request.getHarvestArea());
+        }
+        
         user.setEmailVerified(false);
 
         User savedUser = repo.save(user);

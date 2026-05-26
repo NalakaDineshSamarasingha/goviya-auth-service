@@ -13,10 +13,9 @@ import jakarta.validation.constraints.Pattern;
 @AllArgsConstructor
 public class RegisterUserRequest {
     
-    @NotBlank(message = "First name is required")
+    // Optional for mobile-only signup flows
     private String firstName;
     
-    @NotBlank(message = "Last name is required")
     private String lastName;
     
     // Email/password are optional for mobile-based signup flows using OTP
