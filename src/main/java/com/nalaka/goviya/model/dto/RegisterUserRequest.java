@@ -25,13 +25,11 @@ public class RegisterUserRequest {
 
     private String password;
     
-    @NotBlank(message = "Province is required")
+    // Make location fields optional for simple mobile-only signup
     private String province;
-    
-    @NotBlank(message = "District is required")
+
     private String district;
-    
-    @NotBlank(message = "City is required")
+
     private String city;
     
     @NotBlank(message = "Phone number is required")
@@ -43,7 +41,7 @@ public class RegisterUserRequest {
     
     private String[] harvestTypes;
     
-    private double harvestArea;
+    private Double harvestArea;
     
     @NotBlank(message = "OTP is required")
     @Pattern(regexp = "^[0-9]{6}$", message = "OTP must be 6 digits")

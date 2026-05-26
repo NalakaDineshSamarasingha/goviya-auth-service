@@ -62,50 +62,9 @@ public class UserService {
             throw new RuntimeException("Invalid role. Must be 'farmer', 'buyer', or 'admin'");
         }
 
-        // If email is not provided, treat this as a mobile-only signup
+        // This endpoint requires an email. For mobile-only signup use the OTP flow (/api/auth/register-with-otp)
         if (!hasText(request.getEmail())) {
-            if (!hasText(request.getPhone())) {
-                throw new RuntimeException("Phone number is required for mobile signup");
-            }
-
-            if (findUserByPhoneNumber(request.getPhone()).isPresent()) {
-                throw new RuntimeException("User already exists with this phone number");
-            }
-
-            User user = new User();
-            user.setFullName(request.getFullName());
-
-            String[] nameParts = request.getFullName() != null ? request.getFullName().trim().split(" ", 2) : new String[]{"", ""};
-            user.setFirstName(nameParts.length > 0 ? nameParts[0] : "");
-            user.setLastName(nameParts.length > 1 ? nameParts[1] : "");
-
-            user.setRole(role);
-            user.setPhone(request.getPhone());
-            user.setEmailVerified(false);
-
-            if (request.getProvince() != null && !request.getProvince().isEmpty()) {
-                user.setProvice(request.getProvince());
-            }
-            if (request.getDistrict() != null && !request.getDistrict().isEmpty()) {
-                user.setDistrict(request.getDistrict());
-            }
-            if (request.getCity() != null && !request.getCity().isEmpty()) {
-                user.setCity(request.getCity());
-            }
-            if (request.getHarvestTypes() != null && request.getHarvestTypes().length > 0) {
-                user.setHarvestTypes(request.getHarvestTypes());
-            }
-            if (request.getHarvestArea() != null && request.getHarvestArea() > 0) {
-                user.setHarvestArea(request.getHarvestArea());
-            }
-
-            if (hasText(request.getPassword())) {
-                user.setPassword(passwordEncoder.encode(request.getPassword()));
-            }
-
-            User savedUser = repo.save(user);
-            log.info("User registered successfully with phone: {} and role: {}", savedUser.getPhone(), savedUser.getRole());
-            return savedUser;
+            throw new RuntimeException("Email is required for this signup endpoint. For mobile-only signup use the OTP flow: send OTP to phone and call /api/auth/register-with-otp");
         }
 
         // Email signup flow
@@ -292,12 +251,15 @@ public class UserService {
         // Check if user already exists (email or phone depending on provided data)
         if (hasText(request.getEmail())) {
             if (repo.existsByEmail(request.getEmail())) {
-                throw new RuntimeException("User already exists with this email");
+                // If email already exists, return existing user after OTP verification
+                return repo.findByEmail(request.getEmail()).get();
             }
-        } else {
-            if (findUserByPhoneNumber(request.getPhone()).isPresent()) {
-                throw new RuntimeException("User already exists with this phone number");
-            }
+        }
+
+        // If phone already exists, return the existing user after OTP verification
+        Optional<User> existingByPhone = findUserByPhoneNumber(request.getPhone());
+        if (existingByPhone.isPresent()) {
+            return existingByPhone.get();
         }
 
         // Create user object

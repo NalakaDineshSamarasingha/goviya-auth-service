@@ -135,11 +135,11 @@ Create a new account using email/password.
 
 ### Endpoint
 
-`POST /api/auth/signup`
+`POST /api/auth/register-with-otp`
 
 ### Purpose
 
-Create a new account using a mobile number (no email/password required). The backend accepts this when `email` is omitted and `phone` is provided.
+Create a new account using a mobile number (no email/password required). The frontend must first request an OTP for purpose `signup` using `/api/otp/send`, then call this endpoint with the OTP. If the phone is already registered, the endpoint will verify the OTP and return the existing user details.
 
 ### Request Body (mobile-only)
 
@@ -423,6 +423,7 @@ Complete a user registration using an OTP previously sent to the mobile number (
 Notes:
 - If the request includes `email` the account is created with that email; otherwise the account is created with phone only.
 - The API will not return password data.
+ - If the provided `phone` is already registered the backend will verify the OTP and return the existing user details (no new account will be created).
 ```
 
 ### Success Response
