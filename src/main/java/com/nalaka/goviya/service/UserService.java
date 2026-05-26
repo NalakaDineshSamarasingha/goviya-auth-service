@@ -53,31 +53,79 @@ public class UserService {
      * Register user with email and password (simple signup)
      */
     public User registerWithEmail(EmailSignupRequest request) {
-        // Check if user already exists
-        if (repo.existsByEmail(request.getEmail())) {
-            throw new RuntimeException("User already exists with this email");
-        }
-
         // Validate role
+        if (request.getRole() == null) {
+            throw new RuntimeException("Role is required");
+        }
         String role = request.getRole().toLowerCase();
         if (!role.equals("farmer") && !role.equals("buyer") && !role.equals("admin")) {
             throw new RuntimeException("Invalid role. Must be 'farmer', 'buyer', or 'admin'");
         }
 
-        // Create user object
+        // If email is not provided, treat this as a mobile-only signup
+        if (!hasText(request.getEmail())) {
+            if (!hasText(request.getPhone())) {
+                throw new RuntimeException("Phone number is required for mobile signup");
+            }
+
+            if (findUserByPhoneNumber(request.getPhone()).isPresent()) {
+                throw new RuntimeException("User already exists with this phone number");
+            }
+
+            User user = new User();
+            user.setFullName(request.getFullName());
+
+            String[] nameParts = request.getFullName() != null ? request.getFullName().trim().split(" ", 2) : new String[]{"", ""};
+            user.setFirstName(nameParts.length > 0 ? nameParts[0] : "");
+            user.setLastName(nameParts.length > 1 ? nameParts[1] : "");
+
+            user.setRole(role);
+            user.setPhone(request.getPhone());
+            user.setEmailVerified(false);
+
+            if (request.getProvince() != null && !request.getProvince().isEmpty()) {
+                user.setProvice(request.getProvince());
+            }
+            if (request.getDistrict() != null && !request.getDistrict().isEmpty()) {
+                user.setDistrict(request.getDistrict());
+            }
+            if (request.getCity() != null && !request.getCity().isEmpty()) {
+                user.setCity(request.getCity());
+            }
+            if (request.getHarvestTypes() != null && request.getHarvestTypes().length > 0) {
+                user.setHarvestTypes(request.getHarvestTypes());
+            }
+            if (request.getHarvestArea() != null && request.getHarvestArea() > 0) {
+                user.setHarvestArea(request.getHarvestArea());
+            }
+
+            if (hasText(request.getPassword())) {
+                user.setPassword(passwordEncoder.encode(request.getPassword()));
+            }
+
+            User savedUser = repo.save(user);
+            log.info("User registered successfully with phone: {} and role: {}", savedUser.getPhone(), savedUser.getRole());
+            return savedUser;
+        }
+
+        // Email signup flow
+        if (repo.existsByEmail(request.getEmail())) {
+            throw new RuntimeException("User already exists with this email");
+        }
+
         User user = new User();
         user.setFullName(request.getFullName());
-        
+
         // Parse fullName into firstName and lastName for backward compatibility
-        String[] nameParts = request.getFullName().trim().split(" ", 2);
-        user.setFirstName(nameParts[0]);
+        String[] nameParts = request.getFullName() != null ? request.getFullName().trim().split(" ", 2) : new String[]{"", ""};
+        user.setFirstName(nameParts.length > 0 ? nameParts[0] : "");
         user.setLastName(nameParts.length > 1 ? nameParts[1] : "");
-        
+
         user.setEmail(request.getEmail());
         user.setPassword(passwordEncoder.encode(request.getPassword())); // Encrypt password
         user.setRole(role);
         user.setEmailVerified(false);
-        
+
         // Set optional fields if provided
         if (request.getPhone() != null && !request.getPhone().isEmpty()) {
             user.setPhone(request.getPhone());
@@ -241,17 +289,30 @@ public class UserService {
             throw new RuntimeException("OTP verification failed: " + otpResult.get("message"));
         }
 
-        // Check if user already exists
-        if (repo.existsByEmail(request.getEmail())) {
-            throw new RuntimeException("User already exists with this email");
+        // Check if user already exists (email or phone depending on provided data)
+        if (hasText(request.getEmail())) {
+            if (repo.existsByEmail(request.getEmail())) {
+                throw new RuntimeException("User already exists with this email");
+            }
+        } else {
+            if (findUserByPhoneNumber(request.getPhone()).isPresent()) {
+                throw new RuntimeException("User already exists with this phone number");
+            }
         }
 
         // Create user object
         User user = new User();
         user.setFirstName(request.getFirstName());
         user.setLastName(request.getLastName());
-        user.setEmail(request.getEmail());
-        user.setPassword(passwordEncoder.encode(request.getPassword())); // Encrypt password
+
+        if (hasText(request.getEmail())) {
+            user.setEmail(request.getEmail());
+        }
+
+        if (hasText(request.getPassword())) {
+            user.setPassword(passwordEncoder.encode(request.getPassword())); // Encrypt password
+        }
+
         user.setProvice(request.getProvince());
         user.setDistrict(request.getDistrict());
         user.setCity(request.getCity());
@@ -262,7 +323,7 @@ public class UserService {
         user.setEmailVerified(false);
 
         User savedUser = repo.save(user);
-        log.info("User registered successfully: {}", savedUser.getEmail());
+        log.info("User registered successfully: {}", hasText(savedUser.getEmail()) ? savedUser.getEmail() : savedUser.getPhone());
 
         return savedUser;
     }

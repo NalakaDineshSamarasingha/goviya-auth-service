@@ -19,11 +19,10 @@ public class RegisterUserRequest {
     @NotBlank(message = "Last name is required")
     private String lastName;
     
-    @NotBlank(message = "Email is required")
+    // Email/password are optional for mobile-based signup flows using OTP
     @Email(message = "Invalid email format")
     private String email;
-    
-    @NotBlank(message = "Password is required")
+
     private String password;
     
     @NotBlank(message = "Province is required")

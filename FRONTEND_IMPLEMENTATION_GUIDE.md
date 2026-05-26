@@ -130,6 +130,62 @@ Create a new account using email/password.
     "harvestArea": 2.5
   }
 }
+
+## 1b. Signup With Mobile (Phone-only)
+
+### Endpoint
+
+`POST /api/auth/signup`
+
+### Purpose
+
+Create a new account using a mobile number (no email/password required). The backend accepts this when `email` is omitted and `phone` is provided.
+
+### Request Body (mobile-only)
+
+```json
+{
+  "fullName": "Amila Perera",
+  "role": "farmer",
+  "phone": "0771234567",
+  "province": "Western",
+  "district": "Gampaha",
+  "city": "Negombo",
+  "harvestTypes": ["Vegetables"],
+  "harvestArea": 1.2
+}
+```
+
+### Required Fields (mobile-only)
+
+- `fullName`
+- `role`
+- `phone`
+
+### Success Response
+
+```json
+{
+  "success": true,
+  "message": "Account created successfully",
+  "data": {
+    "id": "507f1f77bcf86cd799439012",
+    "fullName": "Amila Perera",
+    "firstName": "Amila",
+    "lastName": "Perera",
+    "email": null,
+    "role": "farmer",
+    "phone": "0771234567",
+    "province": "Western",
+    "district": "Gampaha",
+    "city": "Negombo",
+    "harvestTypes": ["Vegetables"],
+    "harvestArea": 1.2
+  }
+}
+```
+
+Note: The backend will not return a password field. If the user later sets a password, use the reset-password flow.
 ```
 
 ## 2. Login
@@ -295,6 +351,78 @@ Verify an OTP without logging in.
   "otp": "123456",
   "purpose": "signup"
 }
+
+## Register With OTP
+
+### Endpoint
+
+`POST /api/auth/register-with-otp`
+
+### Purpose
+
+Complete a user registration using an OTP previously sent to the mobile number (purpose `signup`). Works for both email+password signups and phone-only signups.
+
+### Request Body (email + OTP)
+
+```json
+{
+  "firstName": "John",
+  "lastName": "Doe",
+  "email": "john.doe@example.com",
+  "password": "Password123",
+  "province": "Western",
+  "district": "Colombo",
+  "city": "Colombo",
+  "phone": "0771234567",
+  "optionalPhone": "0112345678",
+  "harvestTypes": ["Rice"],
+  "harvestArea": 2.5,
+  "otp": "123456"
+}
+```
+
+### Request Body (phone-only + OTP)
+
+```json
+{
+  "firstName": "Amila",
+  "lastName": "Perera",
+  "province": "Western",
+  "district": "Gampaha",
+  "city": "Negombo",
+  "phone": "0771234567",
+  "optionalPhone": "0112345678",
+  "harvestTypes": ["Vegetables"],
+  "harvestArea": 1.2,
+  "otp": "123456"
+}
+```
+
+### Success Response
+
+```json
+{
+  "success": true,
+  "message": "User registered successfully",
+  "data": {
+    "id": "507f1f77bcf86cd799439013",
+    "firstName": "Amila",
+    "lastName": "Perera",
+    "email": null,
+    "role": null,
+    "phone": "0771234567",
+    "province": "Western",
+    "district": "Gampaha",
+    "city": "Negombo",
+    "harvestTypes": ["Vegetables"],
+    "harvestArea": 1.2
+  }
+}
+```
+
+Notes:
+- If the request includes `email` the account is created with that email; otherwise the account is created with phone only.
+- The API will not return password data.
 ```
 
 ### Success Response
