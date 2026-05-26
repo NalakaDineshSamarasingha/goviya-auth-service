@@ -173,6 +173,24 @@ public class OtpService {
     }
 
     /**
+     * Re-open a phone OTP so it can be used again.
+     */
+    @Transactional
+    public void markPhoneOtpUnused(String phoneNumber, String otp, String purpose) {
+        String formattedPhone = formatSriLankanPhone(phoneNumber);
+
+        Optional<Otp> otpRecordOpt = otpRepository.findByPhoneNumberAndOtpAndPurposeAndExpiresAtAfter(
+                formattedPhone, otp, purpose, LocalDateTime.now()
+        );
+
+        otpRecordOpt.ifPresent(otpRecord -> {
+            otpRecord.setUsed(false);
+            otpRepository.save(otpRecord);
+            log.info("OTP reset to unused for {}", formattedPhone);
+        });
+    }
+
+    /**
      * Check if phone number is verified (has a verified OTP for signup)
      */
     public boolean isPhoneVerified(String phoneNumber, String purpose) {

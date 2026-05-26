@@ -262,6 +262,9 @@ public class UserService {
             return existingByPhone.get();
         }
 
+        // If there is no existing account for this phone, keep the OTP reusable for the next registration attempt
+        otpService.markPhoneOtpUnused(request.getPhone(), request.getOtp(), "signup");
+
         // Create user object
         User user = new User();
         user.setFirstName(request.getFirstName());

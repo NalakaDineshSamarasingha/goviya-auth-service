@@ -15,6 +15,9 @@ public interface OtpRepository extends MongoRepository<Otp, String> {
     
     Optional<Otp> findByPhoneNumberAndOtpAndPurposeAndIsUsedAndExpiresAtAfter(
             String phoneNumber, String otp, String purpose, boolean isUsed, LocalDateTime currentTime);
+
+    Optional<Otp> findByPhoneNumberAndOtpAndPurposeAndExpiresAtAfter(
+            String phoneNumber, String otp, String purpose, LocalDateTime currentTime);
     
     void deleteByPhoneNumberAndPurposeAndIsUsed(String phoneNumber, String purpose, boolean isUsed);
     
@@ -23,6 +26,9 @@ public interface OtpRepository extends MongoRepository<Otp, String> {
     
     Optional<Otp> findByEmailAndOtpAndPurposeAndIsUsedAndExpiresAtAfter(
             String email, String otp, String purpose, boolean isUsed, LocalDateTime currentTime);
+
+    Optional<Otp> findByEmailAndOtpAndPurposeAndExpiresAtAfter(
+            String email, String otp, String purpose, LocalDateTime currentTime);
     
     void deleteByEmailAndPurposeAndIsUsed(String email, String purpose, boolean isUsed);
 }
