@@ -173,20 +173,21 @@ public class OtpService {
     }
 
     /**
-     * Re-open a phone OTP so it can be used again.
+     * Re-open a phone OTP so it can be used again (direct lookup without expiry filter).
+     * Used when mobile signup verification finds no existing account.
      */
     @Transactional
     public void markPhoneOtpUnused(String phoneNumber, String otp, String purpose) {
         String formattedPhone = formatSriLankanPhone(phoneNumber);
 
-        Optional<Otp> otpRecordOpt = otpRepository.findByPhoneNumberAndOtpAndPurposeAndExpiresAtAfter(
-                formattedPhone, otp, purpose, LocalDateTime.now()
+        Optional<Otp> otpRecordOpt = otpRepository.findByPhoneNumberAndOtpAndPurpose(
+                formattedPhone, otp, purpose
         );
 
         otpRecordOpt.ifPresent(otpRecord -> {
             otpRecord.setUsed(false);
             otpRepository.save(otpRecord);
-            log.info("OTP reset to unused for {}", formattedPhone);
+            log.info("OTP reset to unused for phone {}: {}", formattedPhone, otp);
         });
     }
 

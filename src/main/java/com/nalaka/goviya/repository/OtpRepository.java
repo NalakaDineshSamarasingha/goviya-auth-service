@@ -31,4 +31,7 @@ public interface OtpRepository extends MongoRepository<Otp, String> {
             String email, String otp, String purpose, LocalDateTime currentTime);
     
     void deleteByEmailAndPurposeAndIsUsed(String email, String purpose, boolean isUsed);
+    
+    // Direct lookup without expiry filter for resetting phone OTP on mobile signup
+    Optional<Otp> findByPhoneNumberAndOtpAndPurpose(String phoneNumber, String otp, String purpose);
 }
