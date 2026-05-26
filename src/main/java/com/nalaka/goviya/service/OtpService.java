@@ -190,6 +190,26 @@ public class OtpService {
             log.info("OTP reset to unused for phone {}: {}", formattedPhone, otp);
         });
     }
+    
+    /**
+     * Change phone OTP purpose from login to signup when no account exists.
+     * Allows user to use the same OTP for registration after failed login.
+     */
+    @Transactional
+    public void changePhoneOtpPurposeLoginToSignup(String phoneNumber, String otp) {
+        String formattedPhone = formatSriLankanPhone(phoneNumber);
+
+        Optional<Otp> otpRecordOpt = otpRepository.findByPhoneNumberAndOtpAndPurpose(
+                formattedPhone, otp, "login"
+        );
+
+        otpRecordOpt.ifPresent(otpRecord -> {
+            otpRecord.setUsed(false);
+            otpRecord.setPurpose("signup");
+            otpRepository.save(otpRecord);
+            log.info("OTP purpose changed from login to signup for phone {}: {}", formattedPhone, otp);
+        });
+    }
 
     /**
      * Check if phone number is verified (has a verified OTP for signup)

@@ -160,9 +160,9 @@ public class UserService {
 
         Optional<User> userOpt = findUserByPhoneNumber(phoneNumber);
         if (userOpt.isEmpty()) {
-            // Reset OTP to allow retry if account doesn't exist yet
-            otpService.markPhoneOtpUnused(phoneNumber, otp, "login");
-            throw new RuntimeException("No account found with this mobile number");
+            // No account found. Convert login OTP to signup OTP so user can register
+            otpService.changePhoneOtpPurposeLoginToSignup(phoneNumber, otp);
+            throw new RuntimeException("No account found with this mobile number. Please register using the signup endpoint.");
         }
 
         User user = userOpt.get();
