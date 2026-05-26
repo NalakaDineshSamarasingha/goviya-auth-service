@@ -158,9 +158,14 @@ public class UserService {
             throw new RuntimeException((String) otpResult.get("message"));
         }
 
-        User user = findUserByPhoneNumber(phoneNumber)
-                .orElseThrow(() -> new RuntimeException("No account found with this mobile number"));
+        Optional<User> userOpt = findUserByPhoneNumber(phoneNumber);
+        if (userOpt.isEmpty()) {
+            // Reset OTP to allow retry if account doesn't exist yet
+            otpService.markPhoneOtpUnused(phoneNumber, otp, "login");
+            throw new RuntimeException("No account found with this mobile number");
+        }
 
+        User user = userOpt.get();
         String tokenSubject = StringUtils.hasText(user.getEmail()) ? user.getEmail() : normalizePhoneNumber(phoneNumber);
         return buildLoginResponse(user, tokenSubject);
     }
